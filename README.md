@@ -17,6 +17,32 @@ Current Features:
 * Burnsim importing and exporting
 * A UI that supports saving and loading designs along with undo and redo
 * Tools for easily tweaking and optimizing your design 
+* Minimum viable hybrid motor simulation with pressure-fed blowdown or regulated liquid-oxidizer feed
+
+Hybrid Motor Simulation
+-----------------------
+Create a hybrid design with **File > New Hybrid Motor**. Hybrid files contain
+an inhibited cylindrical fuel grain, empirical fuel regression properties,
+constant-density liquid oxidizer, pressurized tank, feed system, injector,
+constant-property combustion model, and the standard openMotor nozzle.
+
+The hybrid solver integrates oxidizer inventory, polytropic ullage blowdown,
+injector flow, oxidizer-flux regression, fuel mass generation, chamber gas
+mass and pressure, and nozzle discharge. Regulated feeds hold their configured
+pressure while the tank has sufficient regulator margin, then either follow
+upstream pressure or shut off according to the selected dropout behavior.
+For numerical stability, hybrid chamber integration automatically subdivides
+configured timesteps larger than 1 ms.
+`examples/hybrid-blowdown.ric` and `examples/hybrid-regulated.ric` provide
+starting points.
+
+This first hybrid model is an engineering estimate. It assumes an
+incompressible constant-density oxidizer and constant combustion gas
+properties. It does not model two-phase self-pressurizing nitrous oxide,
+pressurant-bottle dynamics, line pressure losses, valve transients,
+combustion-efficiency variation with mixture ratio, or CEA chemistry. Use
+mass-conservation and timestep-convergence checks, and validate predictions
+against test data before relying on a design.
 
 The calculations involved were sourced from Rocket Propulsion Elements by George Sutton and from [Richard Nakka's website](https://www.nakka-rocketry.net/rtheory.html).
 

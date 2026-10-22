@@ -3,12 +3,25 @@ from threading import Thread
 
 from PyQt6.QtWidgets import QMainWindow, QTableWidgetItem, QHeaderView
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QAction
 
 import motorlib
 import uilib.widgets.aboutDialog
 from uilib.views.MainWindow_ui import Ui_MainWindow
 
 class Window(QMainWindow):
+    hybridComponents = (
+        ("Fuel Grain", "grain"),
+        ("Fuel Material", "fuel"),
+        ("Oxidizer", "oxidizer"),
+        ("Oxidizer Tank", "tank"),
+        ("Feed System", "feed"),
+        ("Injector", "injector"),
+        ("Combustion", "combustion"),
+        ("Nozzle", "nozzle"),
+        ("Config", "config"),
+    )
+
     def __init__(self, app):
         QMainWindow.__init__(self)
         self.ui = Ui_MainWindow()
@@ -82,6 +95,9 @@ class Window(QMainWindow):
     def setupMenu(self):
         # File menu
         self.ui.actionNew.triggered.connect(self.newMotor)
+        self.actionNewHybrid = QAction("New Hybrid Motor", self)
+        self.actionNewHybrid.triggered.connect(self.newHybridMotor)
+        self.ui.menuFile.insertAction(self.ui.actionOpen, self.actionNewHybrid)
         self.ui.actionSave.triggered.connect(self.app.fileManager.save)
         self.ui.actionSaveAs.triggered.connect(self.app.fileManager.saveAs)
         # Lambda because the signal passes in an argument
@@ -124,7 +140,11 @@ class Window(QMainWindow):
     def updatePropBoxSelection(self):
         self.disablePropSelector()
         cm = self.app.fileManager.getCurrentMotor()
-        prop = self.app.fileManager.getCurrentMotor().propellant
+        if isinstance(cm, motorlib.HybridMotor):
+            self.ui.comboBoxPropellant.setCurrentText('-')
+            self.enablePropSelector()
+            return
+        prop = cm.propellant
         if prop is None:
             self.ui.comboBoxPropellant.setCurrentText('-')
         else:
@@ -157,6 +177,13 @@ class Window(QMainWindow):
     def applyChange(self, propDict):
         ind = self.ui.tableWidgetGrainList.selectionModel().selectedRows()
         cm = self.app.fileManager.getCurrentMotor()
+        if isinstance(cm, motorlib.HybridMotor):
+            if len(ind) > 0:
+                attr = self.hybridComponents[ind[0].row()][1]
+                getattr(cm, attr).setProperties(propDict)
+            self.app.fileManager.addNewMotorHistory(cm)
+            self.updateGrainTable()
+            return
         if len(ind) > 0:
             gid = ind[0].row()
             if gid < len(cm.grains):
@@ -177,6 +204,8 @@ class Window(QMainWindow):
 
     def propChooserChanged(self):
         cm = self.app.fileManager.getCurrentMotor()
+        if isinstance(cm, motorlib.HybridMotor):
+            return
         if self.ui.comboBoxPropellant.currentIndex() == 0:
             cm.propellant = None
         else:
@@ -185,6 +214,41 @@ class Window(QMainWindow):
 
     def updateGrainTable(self):
         cm = self.app.fileManager.getCurrentMotor()
+        hybrid = isinstance(cm, motorlib.HybridMotor)
+        if hybrid:
+            self.ui.labelInitialKNText.setText("Initial Tank Pressure:")
+            self.ui.labelPeakKNText.setText("Average O/F:")
+            self.ui.labelPropellantDimensionsText.setText("Fuel Grain Dimensions:")
+            self.ui.labelPeakMassFluxText.setText("Peak Oxidizer Flux:")
+            self.ui.labelPropellantMassText.setText("Initial Propellant Mass:")
+            self.ui.labelVolumeLoadingText.setText("Fuel Volume Loading:")
+        else:
+            self.ui.labelInitialKNText.setText("Initial Kn:")
+            self.ui.labelPeakKNText.setText("Peak Kn:")
+            self.ui.labelPropellantDimensionsText.setText("Propellant Dimensions:")
+            self.ui.labelPeakMassFluxText.setText("Peak Mass Flux:")
+            self.ui.labelPropellantMassText.setText("Propellant Mass:")
+            self.ui.labelVolumeLoadingText.setText("Volume Loading:")
+        self.ui.comboBoxPropellant.setVisible(not hybrid)
+        self.ui.pushButtonPropEditor.setVisible(not hybrid)
+        self.ui.comboBoxGrainGeometry.setVisible(not hybrid)
+        self.ui.pushButtonAddGrain.setVisible(not hybrid)
+        if hybrid:
+            self.ui.tableWidgetGrainList.setRowCount(len(self.hybridComponents))
+            lengthUnit = self.app.preferencesManager.preferences.units.getProperty('m')
+            for row, (label, attr) in enumerate(self.hybridComponents):
+                component = getattr(cm, attr)
+                self.ui.tableWidgetGrainList.setItem(row, 0, QTableWidgetItem(label))
+                if attr in ("grain", "nozzle"):
+                    details = component.getDetailsString(lengthUnit)
+                elif attr in ("fuel", "oxidizer"):
+                    details = component.getProperty("name")
+                elif attr == "feed":
+                    details = component.getProperty("mode")
+                else:
+                    details = "-"
+                self.ui.tableWidgetGrainList.setItem(row, 1, QTableWidgetItem(details))
+            return
         self.ui.tableWidgetGrainList.setRowCount(len(cm.grains) + 2)
         lengthUnit = self.app.preferencesManager.preferences.units.getProperty('m')
         for gid, grain in enumerate(cm.grains):
@@ -215,6 +279,19 @@ class Window(QMainWindow):
     def checkGrainSelection(self):
         ind = self.ui.tableWidgetGrainList.selectionModel().selectedRows()
         cm = self.app.fileManager.getCurrentMotor()
+        if isinstance(cm, motorlib.HybridMotor):
+            if len(ind) > 0:
+                self.toggleGrainButtons(True)
+                self.ui.pushButtonMoveGrainUp.setEnabled(False)
+                self.ui.pushButtonMoveGrainDown.setEnabled(False)
+                self.ui.pushButtonDeleteGrain.setEnabled(False)
+                self.ui.pushButtonCopyGrain.setEnabled(False)
+                self.ui.comboBoxPropellant.setEnabled(False)
+                self.ui.comboBoxGrainGeometry.setEnabled(False)
+                self.ui.pushButtonAddGrain.setEnabled(False)
+            else:
+                self.toggleGrainEditButtons(False, False)
+            return
         if len(ind) > 0:
             gid = ind[0].row()
             self.toggleGrainButtons(True)
@@ -246,6 +323,11 @@ class Window(QMainWindow):
         cm = self.app.fileManager.getCurrentMotor()
         if len(ind) > 0:
             gid = ind[0].row()
+            if isinstance(cm, motorlib.HybridMotor):
+                attr = self.hybridComponents[gid][1]
+                self.ui.motorEditor.loadObject(getattr(cm, attr))
+                self.toggleGrainButtons(False)
+                return
             if gid < len(cm.grains):
                 self.ui.motorEditor.loadObject(cm.grains[gid])
             elif gid == len(cm.grains):
@@ -302,8 +384,22 @@ class Window(QMainWindow):
 
         self.ui.labelAveragePressure.setText(self.formatMotorStat(simResult.getAveragePressure(), 'Pa'))
         self.ui.labelPeakPressure.setText(self.formatMotorStat(simResult.getMaxPressure(), 'Pa'))
-        self.ui.labelInitialKN.setText(self.formatMotorStat(simResult.getInitialKN(), ''))
-        self.ui.labelPeakKN.setText(self.formatMotorStat(simResult.getPeakKN(), ''))
+        if getattr(simResult.motor, "motorType", "solid") == "hybrid":
+            self.ui.labelInitialKN.setText(
+                self.formatMotorStat(
+                    simResult.channels["tankPressure"].getPoint(0), "Pa"
+                )
+            )
+            self.ui.labelPeakKN.setText(
+                self.formatMotorStat(simResult.getAverageMixtureRatio(), "")
+            )
+        else:
+            self.ui.labelInitialKN.setText(
+                self.formatMotorStat(simResult.getInitialKN(), '')
+            )
+            self.ui.labelPeakKN.setText(
+                self.formatMotorStat(simResult.getPeakKN(), '')
+            )
         self.ui.labelIdealThrustCoefficient.setText(self.formatMotorStat(simResult.getIdealThrustCoefficient(), ''))
 
         self.ui.labelPropellantMass.setText(self.formatMotorStat(simResult.getPropellantMass(), 'kg'))
@@ -333,7 +429,12 @@ class Window(QMainWindow):
 
     def showQuickResults(self, results):
         self.ui.labelVolumeLoading.setText('{:.2f}%'.format(results['volumeLoading']))
-        self.ui.labelInitialKN.setText(self.formatMotorStat(results['initialKn'], ''))
+        if "initialTankPressure" in results:
+            self.ui.labelInitialKN.setText(
+                self.formatMotorStat(results["initialTankPressure"], "Pa")
+            )
+        else:
+            self.ui.labelInitialKN.setText(self.formatMotorStat(results['initialKn'], ''))
         propellantDimensionString = '⌀ {} x {}'.format(
             self.formatMotorStat(results['diameter'], 'm'),
             self.formatMotorStat(results['length'], 'm')
@@ -368,7 +469,13 @@ class Window(QMainWindow):
         self.ui.motorEditor.close()
 
     def newMotor(self):
-        self.app.fileManager.newFile()
+        self.app.fileManager.newFile('solid')
+        self.updatePropBoxSelection()
+        self.resetOutput()
+        self.ui.motorEditor.close()
+
+    def newHybridMotor(self):
+        self.app.fileManager.newFile('hybrid')
         self.updatePropBoxSelection()
         self.resetOutput()
         self.ui.motorEditor.close()

@@ -1,4 +1,5 @@
 from .geometry import *
+from .hybrid import *
 from .longitudinal import *
 from .motor import *
 from .nozzle import *

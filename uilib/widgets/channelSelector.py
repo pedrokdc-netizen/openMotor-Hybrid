@@ -13,15 +13,16 @@ class ChannelSelector(QGroupBox):
         # Populate list of checks to toggle channels
         self.setLayout(QVBoxLayout())
 
-    def setupChecks(self, multiselect, disabled=[], default=None, exclude=[]):
-        # This simres is only used to get the list of channels available
-        simres = motorlib.simResult.SimulationResult(motorlib.motor.Motor())
-        for channel in simres.channels:
+    def setupChecks(self, multiselect, disabled=[], default=None, exclude=[], channels=None):
+        if channels is None:
+            simres = motorlib.simResult.SimulationResult(motorlib.motor.Motor())
+            channels = simres.channels
+        for channel in channels:
             if channel not in exclude:
                 if multiselect:
-                    check = QCheckBox(simres.channels[channel].name)
+                    check = QCheckBox(channels[channel].name)
                 else:
-                    check = QRadioButton(simres.channels[channel].name)
+                    check = QRadioButton(channels[channel].name)
                 self.layout().addWidget(check)
                 self.checks[channel] = check
                 if default is not None:

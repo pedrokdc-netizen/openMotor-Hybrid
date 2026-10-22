@@ -1,0 +1,64 @@
+data:
+  motorType: hybrid
+  fuel:
+    material:
+      name: HTPB
+      density: 930
+      regressionA: 0.0003
+      regressionN: 0.5
+    grain:
+      type: Cylindrical Hybrid
+      properties:
+        diameter: 0.1
+        length: 0.5
+        coreDiameter: 0.04
+        inhibitedEnds: Both
+  oxidizer:
+    name: Generic Liquid Oxidizer
+    density: 750
+  tank:
+    volume: 0.01
+    oxidizerMass: 4
+    initialPressure: 5000000
+    pressurantGamma: 1.2
+    residualMass: 0.1
+  feed:
+    mode: Pressure Fed
+    regulatedPressure: 4000000
+    regulatorMargin: 100000
+    dropoutBehavior: Upstream Pressure
+  injector:
+    dischargeCoefficient: 0.7
+    area: 0.00002
+  combustion:
+    temperature: 3000
+    gamma: 1.2
+    molarMass: 24
+    efficiency: 0.9
+    initialChamberPressure: 101325
+  nozzle:
+    throat: 0.015
+    exit: 0.035
+    efficiency: 0.9
+    divAngle: 15
+    convAngle: 55
+    throatLength: 0.005
+    slagCoeff: 0
+    erosionCoeff: 0
+  config:
+    maxPressure: 15000000
+    maxMassFlux: 1400
+    maxMachNumber: 0.7
+    minPortThroat: 2
+    flowSeparationWarnPercent: 0.05
+    burnoutWebThres: 0.0000254
+    burnoutThrustThres: 0.1
+    timestep: 0.005
+    ambPressure: 101325
+    mapDim: 750
+    sepPressureRatio: 0.4
+    maxOxidizerFlux: 1500
+    maxSimTime: 30
+    chamberDeadVolume: 0.0002
+type: !!python/object/apply:uilib.fileIO.fileTypes [3]
+version: !!python/tuple [0, 7, 0]

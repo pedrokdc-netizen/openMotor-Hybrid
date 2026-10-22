@@ -4,6 +4,7 @@ functions for performing conversion."""
 # The keys in this dictionary specify the units that all calculations are done in internally
 unitLabels = {
     'm': 'Length',
+    'm^2': 'Area',
     'm^3': 'Volume',
     'm/s': 'Velocity',
     'N': 'Force',
@@ -13,6 +14,9 @@ unitLabels = {
     'kg/m^3': 'Density',
     'kg/s': 'Mass Flow',
     'kg/(m^2*s)': 'Mass Flux',
+    'K': 'Temperature',
+    'g/mol': 'Molar Mass',
+    'm/s/(kg/(m^2*s))^n': 'Hybrid Regression Coefficient',
     'm/(s*Pa^n)': 'Burn Rate Coefficient',
     '(m*Pa)/s': 'Nozzle Slag Coefficient',
     'm/(s*Pa)': 'Nozzle Erosion Coefficient'
@@ -23,6 +27,10 @@ unitTable = [
     ('m', 'mm', 1000),
     ('m', 'in', 39.37),
     ('m', 'ft', 3.28),
+
+    ('m^2', 'cm^2', 100**2),
+    ('m^2', 'mm^2', 1000**2),
+    ('m^2', 'in^2', 39.37**2),
 
     ('m^3', 'cm^3', 100**3),
     ('m^3', 'mm^3', 1000**3),

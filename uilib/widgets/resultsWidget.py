@@ -31,10 +31,8 @@ class ResultsWidget(QWidget):
         self.simResult = None
         self.cachedChecks = None
 
-        excludes = ['kn', 'pressure', 'force', 'mass', 'massFlow', 'massFlux', 'exitPressure', 'dThroat', 'volumeLoading', 'machNumber']
-        self.ui.channelSelectorX.setupChecks(False, default='time', exclude=excludes)
+        self.setupChannelChecks()
         self.ui.channelSelectorX.setTitle('X Axis')
-        self.ui.channelSelectorY.setupChecks(True, default=['kn', 'pressure', 'force'], exclude=['time'])
         self.ui.channelSelectorY.setTitle('Y Axis')
         self.ui.channelSelectorX.checksChanged.connect(self.xSelectionChanged)
         self.ui.channelSelectorY.checksChanged.connect(self.drawGraphs)
@@ -73,6 +71,23 @@ class ResultsWidget(QWidget):
         self.grainImages = []
         self.grainLabels = []
 
+    def setupChannelChecks(self, channels=None, includeKn=True):
+        self.ui.channelSelectorX.resetChecks()
+        self.ui.channelSelectorY.resetChecks()
+        excludes = [
+            'kn', 'pressure', 'force', 'mass', 'massFlow', 'massFlux',
+            'exitPressure', 'dThroat', 'volumeLoading', 'machNumber'
+        ]
+        self.ui.channelSelectorX.setupChecks(
+            False, default='time', exclude=excludes, channels=channels
+        )
+        defaults = ['pressure', 'force']
+        if includeKn and (channels is None or 'kn' in channels):
+            defaults.insert(0, 'kn')
+        self.ui.channelSelectorY.setupChecks(
+            True, default=defaults, exclude=['time'], channels=channels
+        )
+
     def setPreferences(self, pref):
         self.preferences = pref
         self.ui.widgetGraph.setPreferences(pref)
@@ -87,6 +102,10 @@ class ResultsWidget(QWidget):
 
     def showData(self, simResult):
         self.simResult = simResult
+        self.setupChannelChecks(
+            simResult.channels,
+            getattr(simResult.motor, "motorType", "solid") == "solid",
+        )
 
         self.setupGrainChecks(len(simResult.motor.grains), True)
 

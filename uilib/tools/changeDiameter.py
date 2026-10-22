@@ -10,7 +10,8 @@ class ChangeDiameterTool(Tool):
                          'Motor Diameter',
                          'Use this tool to set the diameter of all grains in the motor.',
                          props,
-                         False)
+                         False,
+                         supportsHybrid=True)
 
     def applyChanges(self, inp, motor, simulation):
         for grain in motor.grains:

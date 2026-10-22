@@ -64,6 +64,9 @@ class MotorEditor(CollectionEditor):
     def loadObject(self, obj):
         self.objType = type(obj)
         self.loadProperties(obj)
+        self.expRatioLabel.hide()
+        self.nozzlePreview.hide()
+        self.grainPreview.hide()
 
         if issubclass(
             self.objType,

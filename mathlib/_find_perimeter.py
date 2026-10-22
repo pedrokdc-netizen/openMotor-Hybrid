@@ -1,6 +1,10 @@
 import numpy as np
-from ._find_perimeter_cy import _get_perimeter
 from collections import deque
+
+try:
+    from ._find_perimeter_cy import _get_perimeter
+except ImportError:
+    _get_perimeter = None
 
 def find_perimeter(image, level,
                   *,
@@ -77,6 +81,20 @@ def find_perimeter(image, level,
         raise ValueError("Input array must be at least 2x2.")
     if image.ndim != 2:
         raise ValueError('Only 2D arrays are supported.')
+    if _get_perimeter is None:
+        from skimage.measure import find_contours
+
+        contours = find_contours(
+            np.asarray(image, dtype=float),
+            float(level),
+            fully_connected=fully_connected,
+        )
+        perimeter = sum(
+            np.linalg.norm(np.diff(contour, axis=0), axis=1).sum()
+            for contour in contours
+        )
+        return perimeter, contours if including_contours else []
+
     (perimeter,segments) = _get_perimeter(image, float(level), fully_connected == 'high', including_contours)
     contours = []
     if including_contours:

@@ -79,7 +79,7 @@ class Motor:
         'grains', and 'config', which hold to the properties of their corresponding fields. Grains is a list
         of dicts, each containing a type and properties. Propellant may be None if the motor has no propellant
         set."""
-        motorData = {}
+        motorData = {"motorType": "solid"}
         motorData["nozzle"] = self.nozzle.getProperties()
         if self.propellant is not None:
             motorData["propellant"] = self.propellant.getProperties()
