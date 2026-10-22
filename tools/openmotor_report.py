@@ -23,7 +23,7 @@ from matplotlib.figure import Figure
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from motorlib.motor import Motor
+from motorlib.motorFactory import motorFromDict
 from motorlib.longitudinal import draw_motor_cross_section
 from motorlib.simResult import SimAlertLevel
 from tools.openmotor_optimizer import load_motor
@@ -78,7 +78,7 @@ def simulate(config):
     mapDim = config.get("simulation", {}).get("map_dim")
     if mapDim:
         motorData["config"]["mapDim"] = int(mapDim)
-    motor = Motor(motorData)
+    motor = motorFromDict(motorData)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         result = motor.runSimulation()
@@ -97,7 +97,7 @@ def simulate(config):
 def performance_metrics(result):
     peakPressure = result.getMaxPressure()
     averagePressure = result.getAveragePressure()
-    return [
+    metrics = [
         ("Motor designation / Designacao", result.getDesignation(), ""),
         ("Total impulse / Impulso total", result.getImpulse(), "N s"),
         ("Burn time / Tempo de queima", result.getBurnTime(), "s"),
@@ -150,6 +150,44 @@ def performance_metrics(result):
             "",
         ),
     ]
+    if getattr(result.motor, "motorType", "solid") == "hybrid":
+        mixtureRatios = [
+            value
+            for value in result.channels["mixtureRatio"].getData()
+            if value > 0
+        ]
+        metrics.extend(
+            [
+                (
+                    "Consumed oxidizer / Oxidante consumido",
+                    result.getConsumedOxidizerMass(),
+                    "kg",
+                ),
+                (
+                    "Consumed fuel / Combustivel consumido",
+                    result.getConsumedFuelMass(),
+                    "kg",
+                ),
+                (
+                    "Average O/F / O/F medio",
+                    sum(mixtureRatios) / len(mixtureRatios)
+                    if mixtureRatios
+                    else 0,
+                    "",
+                ),
+                (
+                    "Peak O/F / O/F maximo",
+                    max(mixtureRatios) if mixtureRatios else 0,
+                    "",
+                ),
+                (
+                    "Peak oxidizer flux / Fluxo maximo de oxidante",
+                    result.channels["oxidizerMassFlux"].getMax(),
+                    "kg/(m^2 s)",
+                ),
+            ]
+        )
+    return metrics
 
 
 def format_value(value, unit=""):
@@ -571,33 +609,69 @@ def build_document(config, template, motor, result, figures):
     )
 
     document.add_heading(sections["propellant"], level=1)
-    propellant = motor.propellant.getProperties()
-    add_property_table(
-        document,
-        "General properties / Propriedades gerais",
-        {key: value for key, value in propellant.items() if key != "tabs"},
-        template,
-    )
-    tabRows = []
-    for index, tab in enumerate(propellant["tabs"], start=1):
-        tabRows.append(
-            (
-                index,
-                format_value(tab["minPressure"] / 1e6, "MPa"),
-                format_value(tab["maxPressure"] / 1e6, "MPa"),
-                format_value(tab["a"]),
-                format_value(tab["n"]),
-                format_value(tab["k"]),
-                format_value(tab["t"], "K"),
-                format_value(tab["m"], "g/mol"),
-            )
+    if getattr(motor, "motorType", "solid") == "hybrid":
+        add_property_table(
+            document,
+            "Fuel properties / Propriedades do combustivel",
+            motor.fuel.getProperties(),
+            template,
         )
-    add_table(
-        document,
-        ["Tab", "P min", "P max", "a", "n", "k", "T", "M"],
-        tabRows,
-        template["styles"],
-    )
+        add_property_table(
+            document,
+            "Oxidizer properties / Propriedades do oxidante",
+            motor.oxidizer.getProperties(),
+            template,
+        )
+        add_property_table(
+            document,
+            "Tank and feed / Tanque e alimentacao",
+            {
+                **motor.tank.getProperties(),
+                **{
+                    "feed{}".format(key[0].upper() + key[1:]): value
+                    for key, value in motor.feed.getProperties().items()
+                },
+                **{
+                    "injector{}".format(key[0].upper() + key[1:]): value
+                    for key, value in motor.injector.getProperties().items()
+                },
+            },
+            template,
+        )
+        add_property_table(
+            document,
+            "Combustion model / Modelo de combustao",
+            motor.combustion.getProperties(),
+            template,
+        )
+    else:
+        propellant = motor.propellant.getProperties()
+        add_property_table(
+            document,
+            "General properties / Propriedades gerais",
+            {key: value for key, value in propellant.items() if key != "tabs"},
+            template,
+        )
+        tabRows = []
+        for index, tab in enumerate(propellant["tabs"], start=1):
+            tabRows.append(
+                (
+                    index,
+                    format_value(tab["minPressure"] / 1e6, "MPa"),
+                    format_value(tab["maxPressure"] / 1e6, "MPa"),
+                    format_value(tab["a"]),
+                    format_value(tab["n"]),
+                    format_value(tab["k"]),
+                    format_value(tab["t"], "K"),
+                    format_value(tab["m"], "g/mol"),
+                )
+            )
+        add_table(
+            document,
+            ["Tab", "P min", "P max", "a", "n", "k", "T", "M"],
+            tabRows,
+            template["styles"],
+        )
 
     document.add_heading(sections["grains"], level=1)
     grainRows = []

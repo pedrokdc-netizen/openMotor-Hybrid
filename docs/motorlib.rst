@@ -16,6 +16,18 @@
 .. automodule:: motorlib.motor
     :members:
 
+``motorlib.hybrid``
+===================
+
+.. automodule:: motorlib.hybrid
+    :members:
+
+``motorlib.motorFactory``
+=========================
+
+.. automodule:: motorlib.motorFactory
+    :members:
+
 
 ``motorlib.nozzle``
 ===================
@@ -50,4 +62,3 @@
 
 .. automodule:: motorlib.units
     :members:
-

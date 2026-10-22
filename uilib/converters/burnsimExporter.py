@@ -126,4 +126,8 @@ class BurnSimExporter(Exporter):
             outFile.write(ET.tostring(outMotor))
 
     def checkRequirements(self):
-        return self.manager.motor is not None and self.manager.motor.propellant is not None
+        return (
+            self.manager.motor is not None
+            and hasattr(self.manager.motor, "propellant")
+            and self.manager.motor.propellant is not None
+        )

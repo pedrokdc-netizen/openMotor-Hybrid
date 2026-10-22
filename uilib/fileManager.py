@@ -4,6 +4,7 @@ from PyQt6.QtGui import QAction
 
 import os
 import motorlib
+from motorlib.motorFactory import motorFromDict, newMotor as createMotor
 
 from .fileIO import saveFile, loadFile, fileTypes, getConfigPath
 from .helpers import FLAGS_NO_ICON, excludeKeys
@@ -38,12 +39,12 @@ class FileManager(QObject):
         self.loadRecentlyOpenedFilesList()
 
     # Check if current motor is unsaved and start over from default motor. Called when the menu item is triggered.
-    def newFile(self):
+    def newFile(self, motorType='solid'):
         if not self.unsavedCheck():
             logger.log('Cannot start new file because of existing one')
             return
         logger.log('Starting new motor file')
-        newMotor = motorlib.motor.Motor()
+        newMotor = createMotor(motorType)
         motorConfig = self.app.preferencesManager.preferences.general.getProperties()
         newMotor.config.setProperties(motorConfig) # Copy over user's preferences
         self.startFromMotor(newMotor)
@@ -90,8 +91,7 @@ class FileManager(QObject):
                 try:
                     res = loadFile(path, fileTypes.MOTOR)
                     if res is not None:
-                        motor = motorlib.motor.Motor()
-                        motor.applyDict(res)
+                        motor = motorFromDict(res)
                         self.startFromMotor(motor, path)
                         self.addRecentFile(path)
                         return True
@@ -102,9 +102,7 @@ class FileManager(QObject):
 
     # Return the recent end of the motor history
     def getCurrentMotor(self):
-        newMotor = motorlib.motor.Motor()
-        newMotor.applyDict(self.fileHistory[self.currentVersion])
-        return newMotor
+        return motorFromDict(self.fileHistory[self.currentVersion])
 
     # Add a new version of the motor to the motor history. Should be used for all user interactions.
     def addNewMotorHistory(self, motor):
@@ -121,6 +119,8 @@ class FileManager(QObject):
     def updatePropellant(self):
         logger.log('Propellant for current motor changed, updating all copies in history')
         for motor in self.fileHistory:
+            if motor.get('motorType', 'solid') != 'solid':
+                continue
             if motor['propellant'] is not None:
                 if motor['propellant']['name'] in self.app.propellantManager.getNames():
                     prop = self.app.propellantManager.getPropellantByName(motor['propellant']['name']).getProperties()
@@ -200,7 +200,7 @@ class FileManager(QObject):
     # Checks if a motor's propellant is in the library, adds it if it isn't, and also looks for conflicts
     def checkPropellant(self, motor):
         # If the motor doesn't have a propellant set, there's nothing to do
-        if motor.propellant is None:
+        if not hasattr(motor, 'propellant') or motor.propellant is None:
             return motor
 
         propManager = self.app.propellantManager

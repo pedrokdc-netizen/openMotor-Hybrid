@@ -28,7 +28,8 @@ class NozzleCoeffTool(Tool):
                          'throat shrank, the slag buildup coefficient will be '
                          'set (and erosion cleared).',
                          props,
-                         True)
+                         True,
+                         supportsHybrid=True)
 
         # Iteration state (all reset at the start of each tool invocation)
         self._iterating = False

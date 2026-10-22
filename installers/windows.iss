@@ -1,6 +1,6 @@
 [Setup]
 AppName=openMotor
-AppVersion=0.6.2
+AppVersion=0.7.0
 WizardStyle=modern
 DefaultDirName={autopf}\openMotor
 DefaultGroupName=openMotor

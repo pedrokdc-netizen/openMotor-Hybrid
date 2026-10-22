@@ -7,12 +7,21 @@ from .widgets.collectionEditor import CollectionEditor
 
 
 class Tool(QDialog):
-    def __init__(self, manager, name, description, propDict, needsSimulation):
+    def __init__(
+        self,
+        manager,
+        name,
+        description,
+        propDict,
+        needsSimulation,
+        supportsHybrid=False,
+    ):
         super().__init__()
         self.manager = manager
         self.name = name
         self.description = description
         self.needsSimulation = needsSimulation
+        self.supportsHybrid = supportsHybrid
         self.preferences = None
         self.propCollection = motorlib.properties.PropertyCollection()
         self.propCollection.props = propDict
@@ -40,6 +49,17 @@ class Tool(QDialog):
         self.editor.setPreferences(pref)
 
     def show(self):
+        motor = self.manager.getMotor()
+        if (
+            getattr(motor, "motorType", "solid") == "hybrid"
+            and not self.supportsHybrid
+        ):
+            self.manager.fileManager.app.outputMessage(
+                '"{}" is currently available only for solid motors.'.format(
+                    self.name
+                )
+            )
+            return
         logger.log('Showing "{}" tool'.format(self.name))
         if self.previousValues is not None:
             self.propCollection.setProperties(self.previousValues)

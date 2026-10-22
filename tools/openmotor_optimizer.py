@@ -20,7 +20,7 @@ from scipy.stats import qmc
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from motorlib.motor import Motor
+from motorlib.motorFactory import motorFromDict
 
 
 PATH_TOKEN = re.compile(r"([^.[]+)|\[(\d+)\]")
@@ -261,7 +261,7 @@ def _evaluate(data, variables, values, constraints, mapDim):
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            result = Motor(candidateData).runSimulation()
+            result = motorFromDict(candidateData).runSimulation()
         if not result.success or not result.channels["time"].data:
             return None
         metrics = collect_metrics(result)
@@ -446,7 +446,7 @@ def _save_pressure_plot(path, motorData, trailer, variables, selected):
         candidateData = apply_variables(motorData, variables, row["values"])
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            result = Motor(candidateData).runSimulation()
+            result = motorFromDict(candidateData).runSimulation()
         axis.plot(
             result.channels["time"].getData(),
             np.asarray(result.channels["pressure"].getData()) / 1e6,

@@ -17,6 +17,7 @@ DEFAULT_PREFERENCES = {
     },
     'units': {
         'm': 'in',
+        'm^2': 'in^2',
         'm^3': 'in^3',
         'm/s': 'ft/s',
         'Pa': 'psi',
@@ -24,6 +25,9 @@ DEFAULT_PREFERENCES = {
         'kg/m^3': 'lb/in^3',
         'kg/s': 'lb/s',
         'kg/(m^2*s)': 'lb/(in^2*s)',
+        'K': 'K',
+        'g/mol': 'g/mol',
+        'm/s/(kg/(m^2*s))^n': 'm/s/(kg/(m^2*s))^n',
         '(m*Pa)/s': '(in*psi)/s',
         'm/(s*Pa)': 'thou/(s*psi)',
         'm/(s*Pa^n)': 'in/(s*psi^n)'
